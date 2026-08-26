@@ -144,6 +144,82 @@ describe('TwitterClient lists timeline', () => {
       expect(result.error).toContain('List not found');
     });
 
+    it('refreshes query IDs once when GraphQL reports Query: Unspecified', async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ errors: [{ message: 'Query: Unspecified' }] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            data: {
+              list: {
+                tweets_timeline: {
+                  timeline: { instructions: [] },
+                },
+              },
+            },
+          }),
+        });
+
+      const client = new TwitterClient({ cookies: validCookies });
+      const clientPrivate = client as unknown as TwitterClientPrivate;
+      clientPrivate.getListTimelineQueryIds = async () => ['test'];
+      const refreshQueryIds = vi.fn().mockResolvedValue(undefined);
+      clientPrivate.refreshQueryIds = refreshQueryIds;
+
+      const result = await client.getListTimeline('1234567890', 20);
+
+      expect(result).toEqual({ success: true, tweets: [] });
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(refreshQueryIds).toHaveBeenCalledTimes(1);
+    });
+
+    it('fails after one refresh when Query: Unspecified persists', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ errors: [{ message: 'Query: Unspecified' }] }),
+      });
+
+      const client = new TwitterClient({ cookies: validCookies });
+      const clientPrivate = client as unknown as TwitterClientPrivate;
+      clientPrivate.getListTimelineQueryIds = async () => ['test'];
+      const refreshQueryIds = vi.fn().mockResolvedValue(undefined);
+      clientPrivate.refreshQueryIds = refreshQueryIds;
+
+      const result = await client.getListTimeline('1234567890', 20);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Query: Unspecified');
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(refreshQueryIds).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not refresh query IDs for unrelated GraphQL errors', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ errors: [{ message: 'List not found' }] }),
+      });
+
+      const client = new TwitterClient({ cookies: validCookies });
+      const clientPrivate = client as unknown as TwitterClientPrivate;
+      clientPrivate.getListTimelineQueryIds = async () => ['test'];
+      const refreshQueryIds = vi.fn().mockResolvedValue(undefined);
+      clientPrivate.refreshQueryIds = refreshQueryIds;
+
+      const result = await client.getListTimeline('1234567890', 20);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('List not found');
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(refreshQueryIds).not.toHaveBeenCalled();
+    });
+
     it('retries on 404 error after refreshing query IDs', async () => {
       mockFetch
         .mockResolvedValueOnce({

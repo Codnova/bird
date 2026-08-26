@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.2 — 2026-08-25
+
+### Fixed
+- `list-timeline` now treats the GraphQL `Query: Unspecified` response as query-ID churn, refreshes query IDs once, and retries the same request.
+- The documented Corepack-based lint command now works without a globally installed `pnpm` binary.
+
+### Tests
+- Added List timeline regression coverage for successful, persistent, and unrelated GraphQL error responses, plus a 102-entry one-page continuation boundary.
+
 ## 0.8.1 — 2026-02-24
 
 ### Added

@@ -261,5 +261,62 @@ describe('TwitterClient lists pagination', () => {
       expect(result.nextCursor).toBe('cursor-page-3');
       expect(mockFetch).toHaveBeenCalledTimes(2);
     });
+
+    it('preserves all returned entries and the continuation at a one-page boundary', async () => {
+      const entries = Array.from({ length: 102 }, (_, index) => ({
+        content: {
+          itemContent: {
+            tweet_results: {
+              result: {
+                rest_id: `tweet-${index}`,
+                legacy: {
+                  full_text: `Tweet ${index}`,
+                  created_at: '2024-01-01T00:00:00Z',
+                  reply_count: 0,
+                  retweet_count: 0,
+                  favorite_count: 0,
+                  conversation_id_str: `tweet-${index}`,
+                },
+                core: {
+                  user_results: {
+                    result: {
+                      rest_id: `user-${index}`,
+                      legacy: { screen_name: `user${index}`, name: `User ${index}` },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }));
+      entries.push({
+        content: { cursorType: 'Bottom', value: 'cursor-after-large-page' },
+      } as (typeof entries)[number]);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          data: {
+            list: {
+              tweets_timeline: {
+                timeline: { instructions: [{ entries }] },
+              },
+            },
+          },
+        }),
+      });
+
+      const client = new TwitterClient({ cookies: validCookies });
+      const clientPrivate = client as unknown as TwitterClientPrivate;
+      clientPrivate.getListTimelineQueryIds = async () => ['test'];
+
+      const result = await client.getAllListTimeline('1234567890', { maxPages: 1 });
+
+      expect(result.success).toBe(true);
+      expect(result.tweets).toHaveLength(102);
+      expect(result.nextCursor).toBe('cursor-after-large-page');
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
   });
 });
