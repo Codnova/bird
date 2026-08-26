@@ -2,6 +2,11 @@
   "name": "@steipete/bird",
   "version": "0.8.1",
   "description": "CLI tool for tweeting and replying via Twitter/X GraphQL API",
+  "packageManager": "pnpm@10.34.5",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Codnova/bird.git"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

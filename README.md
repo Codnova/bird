@@ -388,6 +388,23 @@ pnpm test
 pnpm run lint
 ```
 
+### Maintaining the Codnova fork
+
+This repository is the maintained source used by X Intelligence. Use Node 24.18.0 and pnpm 10 explicitly so local builds use the same lockfile semantics as CI:
+
+```bash
+cd /home/codiox/dev/bird
+fnm exec --using=24.18.0 corepack pnpm@10 install --frozen-lockfile
+fnm exec --using=24.18.0 corepack pnpm@10 run lint
+fnm exec --using=24.18.0 corepack pnpm@10 test
+fnm exec --using=24.18.0 corepack pnpm@10 run build:dist
+fnm exec --using=24.18.0 corepack pnpm@10 pack
+```
+
+Inspect the generated tarball before installing it. A release package must contain `package.json`, `dist/cli.js`, required `dist/` assets, `README.md`, `CHANGELOG.md`, and `LICENSE`; its metadata must name this Codnova repository and declare the `bird` binary. Install only an inspected local tarball into the intended npm prefix. If installation or validation fails, leave collection paused and repair the local tarball/build; do not silently fall back to a public npm package.
+
+X Intelligence invokes Bird through `/home/codiox/.local/bin/bird`, a credential-loading wrapper that delegates to `/home/codiox/.npm-global/bin/bird`. The wrapper, `/home/codiox/.config/bird`, its personal credential file, and Bird's query-ID cache are not uninstall targets. Verify `bird --version` through the delegated executable and wrapper after any replacement. Do not capture or persist `bird check` output because it includes credential prefixes.
+
 ## Notes
 
 - GraphQL uses internal X endpoints and can be rate limited (429).
